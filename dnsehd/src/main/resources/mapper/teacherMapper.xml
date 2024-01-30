@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.application.dnsehd.dao.TeacherDAO">
+
+	<select id="getAllTeacherCnt" parameterType="String" resultType="int">
+		<choose>
+			<when test='searchWord.equals("")'>
+				SELECT
+						COUNT(*)
+				FROM
+						TEACHER
+			</when>
+			<otherwise>
+				SELECT
+						COUNT(*)
+				FROM 
+						TEACHER
+				WHERE
+						TEACHER_NM LIKE CONCAT('%',#{searchWord},'%')
+			</otherwise>
+		</choose>
+	</select>
+	
+    <insert id="insertTeacher" parameterType="TeacherDTO" useGeneratedKeys="true" keyProperty="teacherNo">
+        INSERT INTO TEACHER (
+            TEACHER_NM,
+            TEACHER_BIRTH,
+            TEACHER_HP,
+            TEACHER_CAREER,
+            TEACHER_INTRO,
+            ADMIN_ID
+        )
+        VALUES (
+            #{teacherNm},
+            #{teacherBirth},
+            #{teacherHp},
+            #{teacherCareer},
+            #{teacherIntro},
+            #{adminId}
+        )
+		<selectKey keyColumn="GENERATED_KEY" keyProperty="teacherNo" order="AFTER" resultType="int">
+		    SELECT LAST_INSERT_ID()
+		</selectKey>
+    </insert>
+
+	<insert id="insertTeacherImg" parameterType="TeacherImgDTO">
+		INSERT INTO TEACHER_IMAGES (
+				TEACHER_NO,
+				TEACHER_IMG_NM,
+				TEACHER_IMG_UUID
+		)
+		VALUES (
+				#{teacherNo},
+				#{teacherImgNm},
+				#{teacherImgUUID}
+		)
+	</insert>
+	
+	<select id="selectAdminTeacherList" resultType="TeacherDTO">
+		SELECT
+				*
+		FROM
+				TEACHER
+	</select>
+
+	<resultMap type="hashmap" id="teacher">
+		<result column="TEACHER_NO" property="teacherNo"/>
+		<result column="TEACHER_NM" property="teacherNm"/>
+		<result column="TEACHER_BIRTH" property="teacherBirth"/>
+		<result column="TEACHER_HP" property="teacherHp"/>
+		<result column="TEACHER_CAREER" property="teacherCareer"/>
+		<result column="TEACHER_INTRO" property="teacherIntro"/>
+		<result column="TEACHER_IMG_NO" property="teacherImgNo"/>
+		<result column="TEACHER_IMG_NM" property="teacherImgNm"/>
+		<result column="TEACHER_IMG_UUID" property="teacherImgUUID"/>
+	</resultMap>
+	
+	<select id="selectTeacherList" parameterType="hashmap" resultMap="teacher">
+		<choose>
+			<when test='searchWord.equals("")'>
+				SELECT
+						T.TEACHER_NO AS TEACHER_NO,
+						T.TEACHER_NM AS TEACHER_NM,
+						T.TEACHER_BIRTH AS TEACHER_BIRTH,
+						T.TEACHER_HP AS TEACHER_HP,
+						T.TEACHER_CAREER AS TEACHER_CAREER,
+						T.TEACHER_INTRO AS TEACHER_INTRO,
+						TI.TEACHER_IMG_NO AS TEACHER_IMG_NO,
+						TI.TEACHER_IMG_NM AS TEACHER_IMG_NM,
+						TI.TEACHER_IMG_UUID AS TEACHER_IMG_UUID
+				FROM
+						TEACHER AS T
+				JOIN 	TEACHER_IMAGES AS TI
+						ON T.TEACHER_NO = TI.TEACHER_NO
+				ORDER BY
+						T.TEACHER_NO DESC
+				LIMIT
+						#{startTeacherIdx},#{onePageViewCnt}
+			</when>
+			<otherwise>
+				SELECT
+						T.TEACHER_NO AS TEACHER_NO,
+						T.TEACHER_NM AS TEACHER_NM,
+						T.TEACHER_BIRTH AS TEACHER_BIRTH,
+						T.TEACHER_HP AS TEACHER_HP,
+						T.TEACHER_CAREER AS TEACHER_CAREER,
+						T.TEACHER_INTRO AS TEACHER_INTRO,
+						TI.TEACHER_IMG_NO AS TEACHER_IMG_NO,
+						TI.TEACHER_IMG_NM AS TEACHER_IMG_NM,
+						TI.TEACHER_IMG_UUID AS TEACHER_IMG_UUID
+				FROM
+						TEACHER AS T
+				JOIN 	TEACHER_IMAGES AS TI
+						ON T.TEACHER_NO = TI.TEACHER_NO
+				WHERE
+						TEACHER_NM LIKE CONCAT('%' , #{searchWord} , '%')
+				ORDER BY
+						T.TEACHER_NO DESC
+				LIMIT
+						#{startTeacherIdx},#{onePageViewCnt}
+			</otherwise>
+		</choose>
+	</select>
+	
+	
+	<select id="selectTeacherDetail" parameterType="int" resultMap="teacher">
+		SELECT
+				T.TEACHER_NO AS TEACHER_NO,
+				T.TEACHER_NM AS TEACHER_NM,
+				T.TEACHER_BIRTH AS TEACHER_BIRTH,
+				T.TEACHER_HP AS TEACHER_HP,
+				T.TEACHER_CAREER AS TEACHER_CAREER,
+				T.TEACHER_INTRO AS TEACHER_INTRO,
+				TI.TEACHER_IMG_NO AS TEACHER_IMG_NO,
+				TI.TEACHER_IMG_NM AS TEACHER_IMG_NM,
+				TI.TEACHER_IMG_UUID AS TEACHER_IMG_UUID
+		FROM
+				TEACHER AS T
+		JOIN 	TEACHER_IMAGES AS TI
+				ON T.TEACHER_NO = TI.TEACHER_NO
+		WHERE
+				T.TEACHER_NO = #{teacherNo}
+	</select>
+	
+	
+	<update id="updateTeacher" parameterType="teacherDTO">
+	    UPDATE 
+	    		TEACHER
+	    SET 
+	    		TEACHER_NM = #{teacherNm},
+	        	TEACHER_BIRTH = #{teacherBirth},
+	        	TEACHER_HP = #{teacherHp},
+	        	TEACHER_CAREER = #{teacherCareer},	
+	        	TEACHER_INTRO = #{teacherIntro}		
+	    WHERE 
+	    		TEACHER_NO = #{teacherNo}
+	</update>
+		
+		
+	<update id="updateTeacherImg" parameterType="TeacherImgDTO">
+	    UPDATE 
+	    		TEACHER_IMAGES
+	    SET 
+	    		TEACHER_IMG_NM = #{teacherImgNm},
+	        	TEACHER_IMG_UUID = #{teacherImgUUID}
+	    WHERE 
+	    		TEACHER_NO = #{teacherNo}
+	</update>
+
+	<delete id="deleteCorespondReviewImg" parameterType="int">
+       DELETE FROM REVIEW_IMAGES
+       WHERE REVIEW_NO IN (
+           SELECT REVIEW_NO FROM REVIEWS R JOIN CLASS C ON R.CLASS_NO = C.CLASS_NO WHERE C.TEACHER_NO = #{teacherNo}
+       )
+	</delete> 
+
+	<delete id="deleteCorespondReview" parameterType="int">
+		DELETE FROM
+				REVIEWS
+		WHERE
+				CLASS_NO IN (
+					SELECT CLASS_NO FROM CLASS WHERE TEACHER_NO = #{teacherNo}
+				)
+	</delete> 
+
+	<delete id="deleteCorespondResv" parameterType="int">
+		DELETE FROM
+				RESERVATIONS
+		WHERE
+				CLASS_NO IN (
+					SELECT CLASS_NO FROM CLASS WHERE TEACHER_NO = #{teacherNo}
+				)
+	</delete> 
+
+	<delete id="deleteCorespondClass" parameterType="int">
+		DELETE FROM
+				CLASS
+		WHERE
+				TEACHER_NO = #{teacherNo}
+	</delete> 
+ 
+	<delete id="deleteCorespondClassImg" parameterType="int">
+       DELETE FROM CLASS_IMAGES
+       WHERE CLASS_NO IN (
+           SELECT CLASS_NO FROM CLASS WHERE TEACHER_NO = #{teacherNo}
+       )
+	</delete> 
+
+	<delete id="deleteTeacher" parameterType="int">
+		DELETE FROM
+				TEACHER
+		WHERE
+				TEACHER_NO = #{teacherNo}
+	</delete>
+	
+
+	<delete id="deleteTeacherImg" parameterType="int">
+		DELETE FROM
+				TEACHER_IMAGES
+		WHERE
+				TEACHER_NO = #{teacherNo}
+	</delete>
+
+	<resultMap type="hashmap" id="class">
+		<result column="CLASS_NO" property="classNo"></result>
+		<result column="CLASS_NM" property="classNm"></result>
+		<result column="CLASS_CONTENT" property="classContent"></result>
+		<result column="CLASS_PRICE" property="classPrice"></result>
+		<result column="CLASS_TIME" property="classTime"></result>
+		<result column="CLASS_CATEGORY" property="classCategory"></result>
+		<result column="CLASS_LIMIT" property="classLimit"></result>
+		<result column="TEACHER_NO" property="teacherNo"></result>
+		<result column="CLASS_IMG_NO" property="classImgNo"></result>
+		<result column="CLASS_IMG_NM" property="classImgNm"></result>
+		<result column="CLASS_IMG_UUID" property="classImgUUID"></result>
+	</resultMap>
+		
+	<select id="selectTeacherOwnClassList" parameterType="int" resultMap="class">
+	    SELECT
+		        C.CLASS_NO,
+		        C.CLASS_NM,
+		        C.CLASS_CONTENT,
+		        C.CLASS_PRICE,
+		        C.CLASS_TIME,
+		        C.CLASS_CATEGORY,
+		        C.CLASS_LIMIT,
+		        C.TEACHER_NO,
+		        CI.CLASS_IMG_NO,
+		        CI.CLASS_IMG_NM,
+		        CI.CLASS_IMG_UUID
+	    FROM 	CLASS C
+	    JOIN 	CLASS_IMAGES CI 
+	      ON 	C.CLASS_NO = CI.CLASS_NO
+		WHERE
+				TEACHER_NO = #{teacherNo}
+	    ORDER BY 
+	    		C.CLASS_NO DESC
+	</select>
+
+	<insert id="insertTeacherDummy">
+		INSERT INTO TEACHER (
+				TEACHER_NM,
+				TEACHER_BIRTH,
+				TEACHER_HP,
+				TEACHER_CAREER,
+				TEACHER_INTRO,
+				ADMIN_ID
+		)
+		VALUES
+		<foreach collection="list" item="teacherDTO" separator=","> 
+			(
+				#{teacherDTO.teacherNm},
+				#{teacherDTO.teacherBirth},
+				#{teacherDTO.teacherHp},
+				#{teacherDTO.teacherCareer},
+				#{teacherDTO.teacherIntro},
+				#{teacherDTO.adminId}
+			)	
+		</foreach>
+	</insert>
+	
+</mapper>
